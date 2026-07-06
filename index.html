@@ -388,6 +388,50 @@
         resultContent.innerHTML = html;
     }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<script>
+  // 初始化 Supabase 連線
+  const SUPABASE_URL = "https://gfqkrspbipbbgrwzjhak.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmcWtyc3BiaXBiYmdyd3pqaGFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzMzkzMTMsImV4cCI6MjA5ODkxNTMxM30.Z75DfMjHc9WmI3WB_nV-khPxMqYlBudeXx2lhW1HX4o";
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // 1. 讀取所有資料的函式
+  async function fetchMachines() {
+    const { data, error } = await supabase
+      .from('machines')
+      .select('*');
+
+    if (error) {
+      console.error("讀取失敗:", error);
+    } else {
+      console.log("讀取成功:", data);
+      // 在這裡呼叫你網頁原本渲染機台清單的函式，把 data 傳進去
+    }
+  }
+
+  // 2. 當使用者在網頁點擊「新增機台」時，呼叫這個函式上傳
+  async function uploadNewMachine(name, coords, colorsArray) {
+    const { data, error } = await supabase
+      .from('machines')
+      .insert([
+        { 
+          name: name, 
+          coordinates: coords, 
+          colors: colorsArray // Supabase 支援儲存陣列類型
+        }
+      ]);
+
+    if (error) {
+      alert("新增失敗！原因：" + error.message);
+    } else {
+      alert("成功同步到雲端！");
+      fetchMachines(); // 重新整理畫面資料
+    }
+  }
+
+  // 網頁打開時，自動去雲端抓取最新資料
+  document.addEventListener("DOMContentLoaded", fetchMachines);
+</script>
 </body>
 </html>

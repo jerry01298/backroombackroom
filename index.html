@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麥塊後室 - 最近羊毛座標尋找器</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .container {
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            height: fit-content;
+        }
+        h1, h2 {
+            font-size: 22px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #2c3e50;
+        }
+        h2 { font-size: 18px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px; text-align: left;}
+        .section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #34495e;
+        }
+        .coord-inputs {
+            display: flex;
+            gap: 15px;
+        }
+        .coord-inputs-group {
+            flex: 1;
+        }
+        .coord-inputs-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            color: #7f8c8d;
+            margin-bottom: 4px;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .color-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .btn-search { background-color: #2ecc71; color: white; }
+        .btn-search:hover { background-color: #27ae60; }
+        .btn-add { background-color: #3498db; color: white; margin-top: 15px; }
+        .btn-add:hover { background-color: #2980b9; }
+        .btn-daily { background-color: #f39c12; color: white; }
+        .btn-daily:hover { background-color: #d35400; }
+        .btn-clear { background-color: #e74c3c; color: white; padding: 6px; font-size: 12px; margin-top: 10px;}
+        .btn-clear:hover { background-color: #c0392b; }
+        
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+            border-left: 5px solid #2ecc71;
+            display: none;
+        }
+        .result-title {
+            font-weight: bold;
+            color: #27ae60;
+            margin-bottom: 12px;
+        }
+        .machine-list {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            padding: 10px;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+        }
+        .list-item:last-child { border-bottom: none; }
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            margin: 0;
+            width: auto;
+        }
+        
+        .color-result-card {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .color-badge {
+            display: inline-block;
+            background: #34495e;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 左側：搜尋區 -->
+<div class="container">
+    <h1>🗺️ 最近羊毛座標尋找器</h1>
+    
+    <div class="section">
+        <div class="section-title">1. 輸入你當前的位置</div>
+        <div class="coord-inputs">
+            <div class="coord-inputs-group">
+                <label>X 軸</label>
+                <input type="number" id="posX" value="0">
+            </div>
+            <div class="coord-inputs-group">
+                <label>Z 軸</label>
+                <input type="number" id="posZ" value="0">
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">2. 勾選你要找的羊毛顏色</div>
+        <div class="color-grid" id="searchColors">
+            <label class="color-item"><input type="checkbox" value="橘色"> 橘色</label>
+            <label class="color-item"><input type="checkbox" value="淺灰色"> 淺灰色</label>
+            <label class="color-item"><input type="checkbox" value="深綠色"> 深綠色</label>
+            <label class="color-item"><input type="checkbox" value="黃色"> 黃色</label>
+            <label class="color-item"><input type="checkbox" value="棕色"> 棕色</label>
+            <label class="color-item"><input type="checkbox" value="灰色"> 灰色</label>
+            <label class="color-item"><input type="checkbox" value="淺綠色"> 淺綠色</label>
+            <label class="color-item"><input type="checkbox" value="藍色"> 藍色</label>
+            <label class="color-item"><input type="checkbox" value="淺藍色"> 淺藍色</label>
+            <label class="color-item"><input type="checkbox" value="黑色"> 黑色</label>
+            <label class="color-item"><input type="checkbox" value="粉色"> 粉色</label>
+            <label class="color-item"><input type="checkbox" value="紫色"> 紫色</label>
+            <label class="color-item"><input type="checkbox" value="白色"> 白色</label>
+            <label class="color-item"><input type="checkbox" value="淺粉色"> 淺粉色</label>
+            <label class="color-item"><input type="checkbox" value="紅色"> 紅色</label>
+        </div>
+    </div>
+
+    <button class="btn-search" onclick="findNearestMachines()">📍 找出離我最近的座標</button>
+
+    <div class="result-box" id="resultBox">
+        <div class="result-title">🎯 各顏色最近機台</div>
+        <div id="resultContent"></div>
+    </div>
+</div>
+
+<!-- 右側：資料庫管理區 -->
+<div class="container">
+    <h2>🛠️ 機台資料庫管理</h2>
+    
+    <div class="section">
+        <!-- 新增每日更新按鈕 -->
+        <button class="btn-daily" onclick="dailyRefresh()">🔄 機台座標每日更新 (清除全紀錄)</button>
+    </div>
+
+    <div class="section">
+        <div class="section-title">快速新增機台</div>
+        
+        <div class="coord-inputs">
+            <div class="coord-inputs-group">
+                <label>機台 X</label>
+                <input type="number" id="newMachineX" value="0">
+            </div>
+            <div class="coord-inputs-group">
+                <label>機台 Z</label>
+                <input type="number" id="newMachineZ" value="0">
+            </div>
+        </div>
+        
+        <div class="section-title" style="font-size: 13px; margin-top: 15px;">選擇此機台擁有的顏色：</div>
+        <div class="color-grid" id="newMachineColors">
+            <label class="color-item"><input type="checkbox" value="橘色"> 橘色</label>
+            <label class="color-item"><input type="checkbox" value="淺灰色"> 淺灰色</label>
+            <label class="color-item"><input type="checkbox" value="深綠色"> 深綠色</label>
+            <label class="color-item"><input type="checkbox" value="黃色"> 黃色</label>
+            <label class="color-item"><input type="checkbox" value="棕色"> 棕色</label>
+            <label class="color-item"><input type="checkbox" value="灰色"> 灰色</label>
+            <label class="color-item"><input type="checkbox" value="淺綠色"> 淺綠色</label>
+            <label class="color-item"><input type="checkbox" value="藍色"> 藍色</label>
+            <label class="color-item"><input type="checkbox" value="淺藍色"> 淺藍色</label>
+            <label class="color-item"><input type="checkbox" value="黑色"> 黑色</label>
+            <label class="color-item"><input type="checkbox" value="粉色"> 粉色</label>
+            <label class="color-item"><input type="checkbox" value="紫色"> 紫色</label>
+            <label class="color-item"><input type="checkbox" value="白色"> 白色</label>
+            <label class="color-item"><input type="checkbox" value="淺粉色"> 淺粉色</label>
+            <label class="color-item"><input type="checkbox" value="紅色"> 紅色</label>
+        </div>
+        
+        <button class="btn-add" onclick="addCustomMachine()">➕ 儲存此機台</button>
+    </div>
+
+    <div class="section" style="border-bottom: none; margin-bottom: 0;">
+        <div class="section-title">已記錄的機台</div>
+        <div class="machine-list" id="machineList"></div>
+        <button class="btn-clear" onclick="clearAllMachines()">⚠️ 強制清空所有資料</button>
+    </div>
+</div>
+
+<script>
+    let machines = JSON.parse(localStorage.getItem('mc_backrooms_machines')) || [];
+    updateMachineListUI();
+
+    // 每日更新按鈕執行的函式
+    function dailyRefresh() {
+        machines = [];
+        localStorage.removeItem('mc_backrooms_machines');
+        updateMachineListUI();
+        document.getElementById('resultBox').style.display = 'none'; // 隱藏先前的搜尋結果
+        alert("🔄 每日刷新成功！已清除昨日所有機台紀錄。");
+    }
+
+    function addCustomMachine() {
+        const x = parseFloat(document.getElementById('newMachineX').value) || 0;
+        const z = parseFloat(document.getElementById('newMachineZ').value) || 0;
+        const name = `機台 (${x}, ${z})`;
+
+        const checkboxes = document.querySelectorAll('#newMachineColors input[type="checkbox"]:checked');
+        const colors = Array.from(checkboxes).map(cb => cb.value);
+
+        if (colors.length === 0) {
+            alert("請至少選擇一種羊毛顏色！");
+            return;
+        }
+
+        machines.push({ id: Date.now(), name, x, z, colors });
+        localStorage.setItem('mc_backrooms_machines', JSON.stringify(machines));
+
+        checkboxes.forEach(cb => cb.checked = false);
+        updateMachineListUI();
+    }
+
+    function deleteMachine(index) {
+        machines.splice(index, 1);
+        localStorage.setItem('mc_backrooms_machines', JSON.stringify(machines));
+        updateMachineListUI();
+    }
+
+    function clearAllMachines() {
+        if (confirm("確定要清空所有已記錄的機台嗎？")) {
+            machines = [];
+            localStorage.removeItem('mc_backrooms_machines');
+            updateMachineListUI();
+            document.getElementById('resultBox').style.display = 'none';
+        }
+    }
+
+    function updateMachineListUI() {
+        const listDiv = document.getElementById('machineList');
+        if (machines.length === 0) {
+            listDiv.innerHTML = "<div style='color:#aaa; text-align:center; padding: 20px 0;'>目前無任何記錄，請在上方新增</div>";
+            return;
+        }
+
+        let html = "";
+        machines.forEach((m, idx) => {
+            html += `<div class="list-item">
+                <div>
+                    <strong>${m.name}</strong><br>
+                    <span style="color:#7f8c8d; font-size:11px;">顏色：${m.colors.join(', ')}</span>
+                </div>
+                <button class="btn-delete" onclick="deleteMachine(${idx})">刪除</button>
+            </div>`;
+        });
+        listDiv.innerHTML = html;
+    }
+
+    function calcDist(x1, z1, x2, z2) {
+        return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(z2 - z1, 2));
+    }
+
+    function findNearestMachines() {
+        const startX = parseFloat(document.getElementById('posX').value) || 0;
+        const startZ = parseFloat(document.getElementById('posZ').value) || 0;
+
+        const checkboxes = document.querySelectorAll('#searchColors input[type="checkbox"]:checked');
+        const targetColors = Array.from(checkboxes).map(cb => cb.value);
+
+        const resultContent = document.getElementById('resultContent');
+        const resultBox = document.getElementById('resultBox');
+        resultBox.style.display = 'block';
+
+        if (targetColors.length === 0) {
+            resultContent.innerHTML = "<span style='color:red;'>請勾選要尋找的顏色。</span>";
+            return;
+        }
+
+        if (machines.length === 0) {
+            resultContent.innerHTML = "資料庫沒有任何機台資料。";
+            return;
+        }
+
+        let html = "";
+
+        targetColors.forEach(color => {
+            let nearestMachine = null;
+            let minDistance = Infinity;
+
+            machines.forEach(m => {
+                if (m.colors.includes(color)) {
+                    const dist = calcDist(startX, startZ, m.x, m.z);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        nearestMachine = m;
+                    }
+                }
+            });
+
+            if (nearestMachine) {
+                html += `
+                <div class="color-result-card">
+                    <div class="color-badge">${color}</div>
+                    <div><strong>座標：X: ${nearestMachine.x} , Z: ${nearestMachine.z}</strong></div>
+                    <div style="color: #7f8c8d; font-size: 13px; margin-top: 3px;">
+                        距離你：${minDistance.toFixed(1)} 格 (該機台附帶: ${nearestMachine.colors.join(', ')})
+                    </div>
+                </div>`;
+            } else {
+                html += `
+                <div class="color-result-card" style="border-left: 5px solid #e74c3c;">
+                    <div class="color-badge" style="background:#e74c3c;">${color}</div>
+                    <div style="color: #e74c3c;">❌ 資料庫中沒有任何機台有這個顏色。</div>
+                </div>`;
+            }
+        });
+
+        resultContent.innerHTML = html;
+    }
+</script>
+
+</body>
+</html>
